@@ -1,0 +1,16 @@
+/.idea/
+
+#api-gateway
+/api-gateway/node_modules/
+/api-gateway/dist
+
+#auth-service
+/auth-service/node_modules/
+/auth-service/dist
+/auth-service/src/prisma/migrations
+
+#project-service
+/project-service/node_modules/
+/project-service/dist
+/project-service/src/prisma/migrations
+

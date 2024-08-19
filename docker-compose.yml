@@ -1,0 +1,133 @@
+networks:
+  main:
+
+services:
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./api-gateway
+      dockerfile: ./Dockerfile
+    env_file:
+      - ./api-gateway/.env
+    volumes:
+      - ./api-gateway:/usr/TODO/api-gateway
+      - /usr/TODO/api-gateway/node_modules
+    ports:
+      - 3000:3000
+    depends_on:
+      - auth-service
+      - project-service
+    restart: always
+    networks:
+      - main
+
+  auth-service:
+    container_name: auth-service
+    build:
+      context: ./auth-service
+      dockerfile: ./Dockerfile
+    env_file:
+      - ./auth-service/.env
+    volumes:
+      - ./auth-service:/usr/TODO/auth-service
+      - /usr/TODO/auth-service/node_modules
+    ports:
+      - 5000:5000
+    command: npm run start:dev
+    depends_on:
+      - rabbitmq
+      - db_auth
+    restart: always
+    networks:
+      - main
+
+  project-service:
+    container_name: project-service
+    build:
+      context: ./project-service
+      dockerfile: ./Dockerfile
+    env_file:
+      - ./project-service/.env
+    volumes:
+      - ./project-service:/usr/TODO/project-service
+      - /usr/TODO/project-service/node_modules
+    ports:
+      - 5001:5001
+    command: npm run start:dev
+    depends_on:
+      - rabbitmq
+      - db_project
+    restart: always
+    networks:
+      - main
+
+  db_auth:
+    image: postgres:16.4
+    container_name: db_auth_container
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: db_auth
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - db-auth-data:/var/lib/postgresql/db_auth_data
+    restart: always
+    networks:
+      - main
+
+  db_project:
+    image: postgres:16.4
+    container_name: db_project_container
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_DB: db_project
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - db-project-data:/var/lib/postgresql/db_project_data
+    restart: always
+    networks:
+      - main
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgAdmin_container
+    ports:
+      - 5050:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db_auth
+      - db_project
+    restart: always
+    networks:
+      - main
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648 log_levels [{connection,error},{default,error}] # disk_free_limit - повышает 'Disk space low watermark' с 48MiB до 2GiB;
+                                                                                                                               # log_levels -пробросили AMQP порт 5672 и добавили уровень логирования error
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    restart: always
+    networks:
+      - main
+
+volumes:
+    db-auth-data:
+    db-project-data:
+    pgadmin-data:
+    rabbitmq-data:
